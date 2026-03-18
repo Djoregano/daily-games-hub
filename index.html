@@ -593,6 +593,98 @@
   .empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
   .empty-state p { font-size: 13px; line-height: 1.6; }
 
+  /* Drag & drop */
+  .game-card.dragging {
+    opacity: 0.35;
+    transform: scale(0.96);
+    border-color: var(--accent) !important;
+  }
+  .game-card.drag-over {
+    border-color: var(--accent3) !important;
+    transform: scale(1.02);
+  }
+  .game-card[draggable="true"] { cursor: grab; }
+  .game-card[draggable="true"]:active { cursor: grabbing; }
+
+  /* Edit pencil btn */
+  .edit-btn {
+    position: relative;
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 2px;
+    width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: color 0.2s;
+  }
+  .edit-btn svg { width: 13px; height: 13px; }
+  .edit-btn:active { color: var(--accent3); }
+
+  /* Edit modal */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 500;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-backdrop.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+    width: 100%;
+    max-width: 480px;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(60px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  .modal-handle {
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 18px;
+  }
+
+  .modal h3 {
+    font-size: 15px; font-weight: 800;
+    margin-bottom: 16px;
+  }
+
+  .modal-actions {
+    display: flex; gap: 8px; margin-top: 16px;
+  }
+
+  .btn-save {
+    flex: 1;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px; font-weight: 700;
+    background: var(--accent); color: #0a0a12;
+    border: none; border-radius: 10px;
+    padding: 12px; cursor: pointer;
+  }
+  .btn-cancel {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px; font-weight: 700;
+    background: var(--surface2); color: var(--muted);
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 18px; cursor: pointer;
+  }
+
+  /* Toast must allow pointer events when shown */
+  .toast.show { pointer-events: all; }
+
 </style>
 </head>
 <body>
@@ -660,6 +752,38 @@
   <button class="toast-undo" id="toastUndo" onclick="undoRemove()" style="display:none">Undo</button>
 </div>
 
+<!-- Edit Modal -->
+<div class="modal-backdrop" id="editModal" onclick="closeEditModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>Edit Game</h3>
+    <div class="form-row">
+      <label class="form-label">Name</label>
+      <input class="form-input" id="editName" type="text" />
+    </div>
+    <div class="form-row">
+      <label class="form-label">URL</label>
+      <input class="form-input" id="editUrl" type="url" />
+    </div>
+    <div class="form-row">
+      <label class="form-label">Source</label>
+      <input class="form-input" id="editSource" type="text" />
+    </div>
+    <div class="form-row">
+      <label class="form-label">Emoji</label>
+      <div class="emoji-picker" id="editEmojiPicker"></div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Color</label>
+      <div class="color-picker" id="editColorPicker"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+      <button class="btn-save" onclick="saveEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────
 
@@ -704,8 +828,8 @@ const DEFAULT_GAMES = [
     id: 'movie-snake',
     name: 'Movie Snake',
     emoji: '🎬',
-    source: 'moviesnake.com',
-    url: 'https://www.moviesnake.com',
+    source: 'moviesnake.io',
+    url: 'https://www.moviesnake.io',
     color: '#c084fc',
     wide: false
   }
@@ -930,7 +1054,19 @@ function renderHub() {
   grid.innerHTML = myGames.map((g, i) => {
     const done = !!completed[g.id];
     return `
-    <a class="game-card ${g.wide ? 'wide' : ''} ${done ? 'done' : ''}" href="${g.url}" target="_blank" style="--card-accent: ${g.color}">
+    <a class="game-card ${g.wide ? 'wide' : ''} ${done ? 'done' : ''}"
+       href="${g.url}" target="_blank"
+       style="--card-accent: ${g.color}"
+       draggable="true"
+       data-id="${g.id}"
+       ondragstart="onDragStart(event,'${g.id}')"
+       ondragover="onDragOver(event,'${g.id}')"
+       ondragleave="onDragLeave(event)"
+       ondrop="onDrop(event,'${g.id}')"
+       ondragend="onDragEnd(event)"
+       ontouchstart="touchDragStart(event,'${g.id}')"
+       ontouchmove="touchDragMove(event)"
+       ontouchend="touchDragEnd(event,'${g.id}')">
       <div>
         <div class="game-card-emoji">${g.emoji}</div>
       </div>
@@ -943,6 +1079,12 @@ function renderHub() {
             : `<span class="play-btn">Play <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>`
           }
           <div style="display:flex;gap:4px;align-items:center">
+            <button class="edit-btn" onclick="openEditModal(event,'${g.id}')" title="Edit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </button>
             <button class="check-btn ${done ? 'checked' : ''}" onclick="toggleCompleted(event, '${g.id}')" title="${done ? 'Mark incomplete' : 'Mark as done'}">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12"/>
@@ -1122,6 +1264,182 @@ function switchTab(tab, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
   btn.classList.add('active');
+}
+
+// ── DRAG & DROP (mouse) ───────────────────────────────────────────────────────
+
+let dragSrcId = null;
+
+function onDragStart(e, id) {
+  // only drag from the card itself, not from buttons
+  if (e.target.closest('button')) { e.preventDefault(); return; }
+  dragSrcId = id;
+  setTimeout(() => e.currentTarget.classList.add('dragging'), 0);
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function onDragOver(e, id) {
+  e.preventDefault();
+  if (id === dragSrcId) return;
+  e.currentTarget.classList.add('drag-over');
+}
+
+function onDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function onDrop(e, targetId) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!dragSrcId || dragSrcId === targetId) return;
+  const fromIdx = myGames.findIndex(g => g.id === dragSrcId);
+  const toIdx   = myGames.findIndex(g => g.id === targetId);
+  if (fromIdx === -1 || toIdx === -1) return;
+  const [moved] = myGames.splice(fromIdx, 1);
+  myGames.splice(toIdx, 0, moved);
+  saveGames();
+  renderHub();
+}
+
+function onDragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  dragSrcId = null;
+}
+
+// ── TOUCH DRAG (mobile) ───────────────────────────────────────────────────────
+
+let touchDragId = null;
+let touchClone  = null;
+let touchOffX   = 0;
+let touchOffY   = 0;
+
+function touchDragStart(e, id) {
+  if (e.target.closest('button')) return;
+  // Only initiate after a slight delay to distinguish from tap
+  touchDragId = null;
+  const startX = e.touches[0].clientX;
+  const startY = e.touches[0].clientY;
+  const card = e.currentTarget;
+
+  card._touchDragTimer = setTimeout(() => {
+    touchDragId = id;
+    const rect = card.getBoundingClientRect();
+    touchOffX = startX - rect.left;
+    touchOffY = startY - rect.top;
+    // Clone for visual ghost
+    touchClone = card.cloneNode(true);
+    touchClone.style.cssText = `position:fixed;top:${rect.top}px;left:${rect.left}px;width:${rect.width}px;opacity:0.85;pointer-events:none;z-index:9999;transform:scale(1.04);transition:none;border:1px solid var(--accent);border-radius:16px;`;
+    document.body.appendChild(touchClone);
+    card.classList.add('dragging');
+    // Cancel hold-to-delete if dragging
+    cancelHold();
+  }, 300);
+}
+
+function touchDragMove(e) {
+  if (!touchDragId) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  if (touchClone) {
+    touchClone.style.left = (t.clientX - touchOffX) + 'px';
+    touchClone.style.top  = (t.clientY - touchOffY) + 'px';
+  }
+  // Find element under finger
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  const below = document.elementFromPoint(t.clientX, t.clientY);
+  const targetCard = below ? below.closest('.game-card[data-id]') : null;
+  if (targetCard && targetCard.dataset.id !== touchDragId) {
+    targetCard.classList.add('drag-over');
+  }
+}
+
+function touchDragEnd(e, id) {
+  clearTimeout(document.querySelector(`[data-id="${id}"]`)?._touchDragTimer);
+  if (!touchDragId) return;
+  // Find drop target
+  const t = e.changedTouches[0];
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  if (touchClone) { touchClone.remove(); touchClone = null; }
+  document.querySelector(`[data-id="${touchDragId}"]`)?.classList.remove('dragging');
+  const below = document.elementFromPoint(t.clientX, t.clientY);
+  const targetCard = below ? below.closest('.game-card[data-id]') : null;
+  if (targetCard && targetCard.dataset.id !== touchDragId) {
+    const fromIdx = myGames.findIndex(g => g.id === touchDragId);
+    const toIdx   = myGames.findIndex(g => g.id === targetCard.dataset.id);
+    if (fromIdx !== -1 && toIdx !== -1) {
+      const [moved] = myGames.splice(fromIdx, 1);
+      myGames.splice(toIdx, 0, moved);
+      saveGames();
+      renderHub();
+    }
+  }
+  touchDragId = null;
+}
+
+// ── EDIT MODAL ────────────────────────────────────────────────────────────────
+
+let editingId = null;
+let editEmoji = '';
+let editColor = '';
+
+function openEditModal(e, id) {
+  e.preventDefault();
+  e.stopPropagation();
+  const g = myGames.find(g => g.id === id);
+  if (!g) return;
+  editingId = id;
+  editEmoji = g.emoji;
+  editColor = g.color;
+  document.getElementById('editName').value   = g.name;
+  document.getElementById('editUrl').value    = g.url;
+  document.getElementById('editSource').value = g.source;
+  // Emoji picker
+  document.getElementById('editEmojiPicker').innerHTML = EMOJIS.map(em =>
+    `<span class="emoji-opt ${em === g.emoji ? 'selected' : ''}" onclick="selectEditEmoji('${em}',this)">${em}</span>`
+  ).join('');
+  // Color picker
+  document.getElementById('editColorPicker').innerHTML = COLORS.map(c =>
+    `<div class="color-opt ${c === g.color ? 'selected' : ''}" style="background:${c}" onclick="selectEditColor('${c}',this)"></div>`
+  ).join('');
+  document.getElementById('editModal').classList.add('open');
+}
+
+function closeEditModal(e) {
+  if (e && e.target !== document.getElementById('editModal')) return;
+  document.getElementById('editModal').classList.remove('open');
+  editingId = null;
+}
+
+function selectEditEmoji(em, el) {
+  editEmoji = em;
+  document.querySelectorAll('#editEmojiPicker .emoji-opt').forEach(x => x.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function selectEditColor(c, el) {
+  editColor = c;
+  document.querySelectorAll('#editColorPicker .color-opt').forEach(x => x.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function saveEdit() {
+  if (!editingId) return;
+  const idx = myGames.findIndex(g => g.id === editingId);
+  if (idx === -1) return;
+  myGames[idx] = {
+    ...myGames[idx],
+    name:   document.getElementById('editName').value.trim()   || myGames[idx].name,
+    url:    document.getElementById('editUrl').value.trim()    || myGames[idx].url,
+    source: document.getElementById('editSource').value.trim() || myGames[idx].source,
+    emoji:  editEmoji,
+    color:  editColor,
+  };
+  saveGames();
+  renderHub();
+  document.getElementById('editModal').classList.remove('open');
+  editingId = null;
+  showToast('Saved ✓');
 }
 
 init();
