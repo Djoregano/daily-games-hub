@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0d0d14">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Daily Games">
+<title>Daily Games Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a12;
+    --surface: #12121e;
+    --surface2: #1a1a2e;
+    --border: rgba(255,255,255,0.07);
+    --accent: #e8ff47;
+    --accent2: #ff6b6b;
+    --accent3: #6bc5ff;
+    --text: #f0f0f8;
+    --muted: rgba(240,240,248,0.45);
+    --card-radius: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    overflow-x: hidden;
+    padding-bottom: 100px;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  /* Header */
+  .header {
+    padding: 52px 20px 20px;
+    position: relative;
+  }
+
+  .header-glow {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 300px; height: 200px;
+    background: radial-gradient(ellipse, rgba(232,255,71,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 4px;
+  }
+
+  .logo-mark {
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .logo-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+    box-shadow: 0 0 12px var(--accent);
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.8); }
+  }
+
+  .header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+  }
+
+  .header h1 span { color: var(--accent); }
+
+  .date-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 10px;
+    letter-spacing: 0.5px;
+  }
+
+  .streak-bar {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .streak-bar::-webkit-scrollbar { display: none; }
+
+  .streak-chip {
+    flex-shrink: 0;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    background: var(--surface);
+    white-space: nowrap;
+  }
+
+  /* Tab Nav */
+  .tab-nav {
+    display: flex;
+    padding: 0 20px;
+    gap: 4px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab-btn {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    background: none;
+    border: none;
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* Sections */
+  .section { display: none; padding: 0 16px; }
+  .section.active { display: block; }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    padding-left: 4px;
+  }
+
+  /* Game Cards */
+  .games-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+
+  .game-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 16px;
+    cursor: pointer;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.15s, border-color 0.2s;
+    -webkit-user-select: none;
+  }
+
+  .game-card:active { transform: scale(0.97); }
+
+  .game-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--card-accent, var(--accent));
+    opacity: 0.8;
+  }
+
+  .game-card-emoji {
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  .game-card-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .game-card-source {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+
+  .game-card-play {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .play-btn {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--card-accent, var(--accent));
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .play-btn svg { width: 12px; height: 12px; }
+
+  .remove-btn {
+    position: relative;
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 2px;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: color 0.2s, background 0.2s;
+    overflow: visible;
+  }
+  .remove-btn > svg:first-child { width: 15px; height: 15px; position: relative; z-index: 1; }
+  .remove-btn:active { color: var(--accent2); }
+  .remove-btn.holding { color: var(--accent2); }
+
+  /* Hold ring */
+  .hold-ring {
+    position: absolute;
+    inset: -3px;
+    width: calc(100% + 6px);
+    height: calc(100% + 6px);
+    pointer-events: none;
+    transform: rotate(-90deg);
+    z-index: 0;
+  }
+  .hold-ring circle {
+    transition: none;
+  }
+  .remove-btn.holding .hold-ring circle {
+    animation: fillRing 0.7s linear forwards;
+  }
+  @keyframes fillRing {
+    from { stroke-dashoffset: 100; }
+    to   { stroke-dashoffset: 0; }
+  }
+
+  .check-btn {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    color: var(--muted);
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .check-btn svg { width: 12px; height: 12px; }
+  .check-btn.checked {
+    background: var(--card-accent, var(--accent));
+    border-color: var(--card-accent, var(--accent));
+    color: #0a0a12;
+  }
+  .check-btn:active { transform: scale(0.9); }
+
+  .game-card.done {
+    opacity: 0.72;
+  }
+  .game-card.done::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 8px,
+      rgba(255,255,255,0.015) 8px,
+      rgba(255,255,255,0.015) 9px
+    );
+    border-radius: var(--card-radius);
+    pointer-events: none;
+  }
+
+  /* Full width card */
+  .game-card.wide {
+    grid-column: span 2;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+  }
+  .game-card.wide .game-card-emoji { font-size: 36px; }
+  .game-card.wide .game-card-play { flex-direction: column; align-items: flex-end; gap: 6px; }
+
+  /* Discover */
+  .discover-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    position: relative;
+  }
+
+  .discover-emoji { font-size: 32px; flex-shrink: 0; }
+
+  .discover-info { flex: 1; }
+
+  .discover-name {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .discover-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+
+  .discover-actions { display: flex; gap: 8px; }
+
+  .btn-add {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    background: var(--accent);
+    color: #0a0a12;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-add:active { opacity: 0.8; }
+  .btn-add:disabled { background: var(--surface2); color: var(--muted); cursor: default; }
+
+  .btn-visit {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 14px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .new-badge {
+    position: absolute;
+    top: 12px; right: 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: var(--accent2);
+    color: white;
+    border-radius: 4px;
+    padding: 2px 6px;
+  }
+
+  /* Add custom form */
+  .add-form {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 18px;
+    margin-bottom: 12px;
+  }
+
+  .add-form h3 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 14px;
+  }
+
+  .form-row { margin-bottom: 10px; }
+
+  .form-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 5px;
+  }
+
+  .form-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus { border-color: var(--accent); }
+
+  .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .emoji-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .emoji-opt {
+    font-size: 20px;
+    background: var(--surface2);
+    border: 2px solid transparent;
+    border-radius: 8px;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .emoji-opt.selected { border-color: var(--accent); }
+
+  .color-picker {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+
+  .color-opt {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .color-opt.selected { border-color: white; transform: scale(1.15); }
+
+  .btn-submit {
+    width: 100%;
+    margin-top: 14px;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    background: var(--accent);
+    color: #0a0a12;
+    border: none;
+    border-radius: 10px;
+    padding: 12px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-submit:active { opacity: 0.8; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--accent);
+    color: #0a0a12;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 20px;
+    border-radius: 40px;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 999;
+    white-space: nowrap;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .toast {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .toast-undo {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    background: rgba(0,0,0,0.2);
+    color: #0a0a12;
+    border: none;
+    border-radius: 20px;
+    padding: 4px 10px;
+    cursor: pointer;
+    flex-shrink: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* Bottom Nav */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(10,10,18,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+    z-index: 100;
+  }
+
+  .nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px 0;
+    transition: color 0.2s;
+    text-transform: uppercase;
+  }
+
+  .nav-btn.active { color: var(--accent); }
+
+  .nav-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.5; }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+  .empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p { font-size: 13px; line-height: 1.6; }
+
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-glow"></div>
+  <div class="header-top">
+    <div class="logo-mark">
+      <div class="logo-dot"></div>
+      <h1>Daily<br><span>Games</span></h1>
+    </div>
+    <div class="date-badge" id="dateBadge"></div>
+  </div>
+  <div class="streak-bar" id="streakBar"></div>
+</div>
+
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab('hub', this)">My Hub</button>
+  <button class="tab-btn" onclick="switchTab('discover', this)">Discover</button>
+  <button class="tab-btn" onclick="switchTab('add', this)">+ Add</button>
+</div>
+
+<!-- HUB TAB -->
+<div class="section active" id="tab-hub">
+  <p class="section-label">Today's Games <span style="float:right;font-size:9px;opacity:0.5">hold 🗑 to remove</span></p>
+  <div class="games-grid" id="gamesGrid"></div>
+</div>
+
+<!-- DISCOVER TAB -->
+<div class="section" id="tab-discover">
+  <p class="section-label">Recommended for you</p>
+  <div id="discoverList"></div>
+</div>
+
+<!-- ADD TAB -->
+<div class="section" id="tab-add">
+  <div class="add-form">
+    <h3>Add a Custom Game</h3>
+    <div class="form-row">
+      <label class="form-label">Game Name</label>
+      <input class="form-input" id="inputName" type="text" placeholder="e.g. Wordle Hebrew" />
+    </div>
+    <div class="form-row">
+      <label class="form-label">URL</label>
+      <input class="form-input" id="inputUrl" type="url" placeholder="https://..." />
+    </div>
+    <div class="form-row">
+      <label class="form-label">Emoji Icon</label>
+      <div class="emoji-picker" id="emojiPicker"></div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Accent Color</label>
+      <div class="color-picker" id="colorPicker"></div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Source / Publisher</label>
+      <input class="form-input" id="inputSource" type="text" placeholder="e.g. Haaretz" />
+    </div>
+    <button class="btn-submit" onclick="addCustomGame()">Add to My Hub</button>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <span id="toastMsg"></span>
+  <button class="toast-undo" id="toastUndo" onclick="undoRemove()" style="display:none">Undo</button>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+
+const DEFAULT_GAMES = [
+  {
+    id: 'minutecryptic',
+    name: 'MinuteCryptic',
+    emoji: '🧩',
+    source: 'minutecryptic.com',
+    url: 'https://www.minutecryptic.com',
+    color: '#e8ff47',
+    wide: false
+  },
+  {
+    id: 'nyt-connections',
+    name: 'NYT Connections',
+    emoji: '🔗',
+    source: 'NYT Games',
+    url: 'https://www.nytimes.com/games/connections',
+    color: '#ffd700',
+    wide: false
+  },
+  {
+    id: 'ma-hakesher',
+    name: 'מה הקשר',
+    emoji: '🧠',
+    source: 'הארץ',
+    url: 'https://www.haaretz.co.il/riddles/2024-03-20/ty-article-static/.premium/0000018d-9705-d57f-a1ef-bf1d5b3d0000',
+    color: '#6bc5ff',
+    wide: false
+  },
+  {
+    id: 'eyze-shir',
+    name: 'איזה שיר',
+    emoji: '🎵',
+    source: 'הארץ',
+    url: 'https://www.haaretz.co.il/riddles/2024-08-13/ty-article-static/.free/0000018f-e796-d481-a58f-f7b6fa100000',
+    color: '#ff6b6b',
+    wide: false
+  },
+  {
+    id: 'movie-snake',
+    name: 'Movie Snake',
+    emoji: '🎬',
+    source: 'moviesnake.com',
+    url: 'https://www.moviesnake.com',
+    color: '#c084fc',
+    wide: false
+  }
+];
+
+const DISCOVER_GAMES = [
+  {
+    id: 'minutecryptic',
+    name: 'MinuteCryptic',
+    emoji: '🧩',
+    source: 'minutecryptic.com',
+    url: 'https://www.minutecryptic.com',
+    color: '#e8ff47',
+    desc: 'A daily cryptic crossword clue you can solve in under a minute.',
+    isNew: false
+  },
+  {
+    id: 'nyt-connections',
+    name: 'NYT Connections',
+    emoji: '🔗',
+    source: 'NYT Games',
+    url: 'https://www.nytimes.com/games/connections',
+    color: '#ffd700',
+    desc: 'Group 16 words into 4 categories. Harder than it looks.',
+    isNew: false
+  },
+  {
+    id: 'wordle',
+    name: 'Wordle',
+    emoji: '🟩',
+    source: 'NYT Games',
+    url: 'https://www.nytimes.com/games/wordle/index.html',
+    color: '#6aaa64',
+    desc: 'Guess the 5-letter word in 6 tries. The classic that started it all.',
+    isNew: false
+  },
+  {
+    id: 'framed',
+    name: 'Framed',
+    emoji: '🎞️',
+    source: 'framed.wtf',
+    url: 'https://framed.wtf',
+    color: '#ff6b6b',
+    desc: 'Guess the movie from a single frame. A new film every day.',
+    isNew: false
+  },
+  {
+    id: 'heardle',
+    name: 'Heardle',
+    emoji: '🎧',
+    source: 'Spotify',
+    url: 'https://www.spotify.com/heardle',
+    color: '#1db954',
+    desc: 'Identify a song from just 1 second of its intro. Music lovers\' dream.',
+    isNew: false
+  },
+  {
+    id: 'worldle',
+    name: 'Worldle',
+    emoji: '🌍',
+    source: 'worldle.teuteuf.fr',
+    url: 'https://worldle.teuteuf.fr',
+    color: '#6bc5ff',
+    desc: 'Guess the country from its silhouette. Geography challenge.',
+    isNew: false
+  },
+  {
+    id: 'tradle',
+    name: 'Tradle',
+    emoji: '📦',
+    source: 'oec.world',
+    url: 'https://oec.world/en/tradle',
+    color: '#ffd700',
+    desc: 'Guess a country by what it exports. For the curious economist.',
+    isNew: true
+  },
+  {
+    id: 'mini-crossword',
+    name: 'NYT Mini Crossword',
+    emoji: '✏️',
+    source: 'NYT Games',
+    url: 'https://www.nytimes.com/crosswords/game/mini',
+    color: '#e8ff47',
+    desc: 'A quick 5x5 crossword, solvable in under 2 minutes. Daily.',
+    isNew: false
+  },
+  {
+    id: 'wordal',
+    name: '5 אותיות',
+    emoji: '🔤',
+    source: 'הארץ',
+    url: 'https://www.haaretz.co.il/riddles/5-letters',
+    color: '#6aaa64',
+    desc: 'וורדל בעברית — נחש מילה בת 5 אותיות ב-6 ניסיונות.',
+    isNew: false
+  },
+  {
+    id: 'sipur-kisui',
+    name: 'סיפור כיסוי',
+    emoji: '📰',
+    source: 'הארץ',
+    url: 'https://www.haaretz.co.il/riddles/2024-11-05/ty-article-static/.premium/00000191-8d8d-dd8c-addd-bdfd9cab0000',
+    color: '#ffd700',
+    desc: 'כסו את כל העיגולים בלוח עם צורות — חידת מרחב יומית.',
+    isNew: false
+  },
+  {
+    id: 'higionit',
+    name: 'הגיונית',
+    emoji: '🔢',
+    source: 'הארץ',
+    url: 'https://www.haaretz.co.il/riddles/2023-12-27/ty-article-static/.premium/0000018b-7abc-d1da-a1bb-7fbcccb00000',
+    color: '#ff9f43',
+    desc: 'נחש הגדרה כמו בתשבץ היגיון — ב-3 ניסיונות בלבד.',
+    isNew: false
+  },
+  {
+    id: 'mi-ani',
+    name: '10 שאלות',
+    emoji: '🕵️',
+    source: 'הארץ',
+    url: 'https://www.haaretz.co.il/riddles/10questions',
+    color: '#c084fc',
+    desc: 'ענו על 10 שאלות טריוויה יומיות — כמה תצליחו לפתור?',
+    isNew: false
+  },
+  {
+    id: 'betweenle',
+    name: 'Betweenle',
+    emoji: '📖',
+    source: 'betweenle.com',
+    url: 'https://betweenle.com',
+    color: '#c084fc',
+    desc: 'Find a word that sits alphabetically between two given words.',
+    isNew: true
+  },
+  {
+    id: 'globle',
+    name: 'Globle',
+    emoji: '🌐',
+    source: 'globle-game.com',
+    url: 'https://globle-game.com',
+    color: '#ff9f43',
+    desc: 'Guess the mystery country — globe heats up as you get closer.',
+    isNew: false
+  }
+];
+
+const EMOJIS = ['🎮','🧩','🎯','🎲','🃏','🎬','🎵','🧠','🌍','✏️','🔗','📖','🎧','🎞️','📦','🌐','⚡','🔥','🏆','💎'];
+const COLORS = ['#e8ff47','#ff6b6b','#6bc5ff','#ffd700','#c084fc','#1db954','#ff9f43','#f472b6','#34d399','#60a5fa'];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+
+let myGames = JSON.parse(localStorage.getItem('dailyGamesHub_v2') || 'null') || [...DEFAULT_GAMES];
+let selectedEmoji = EMOJIS[0];
+let selectedColor = COLORS[0];
+
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+function getCompleted() {
+  const raw = JSON.parse(localStorage.getItem('dailyGamesCompleted') || '{}');
+  if (raw.date !== todayKey()) return {};
+  return raw.ids || {};
+}
+function saveCompleted(ids) {
+  localStorage.setItem('dailyGamesCompleted', JSON.stringify({ date: todayKey(), ids }));
+}
+function toggleCompleted(e, id) {
+  e.preventDefault();
+  e.stopPropagation();
+  const completed = getCompleted();
+  if (completed[id]) { delete completed[id]; } else { completed[id] = true; }
+  saveCompleted(completed);
+  renderHub();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+
+function init() {
+  // Date badge
+  const now = new Date();
+  document.getElementById('dateBadge').textContent =
+    now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase();
+
+  // Streak chips
+  buildStreakBar();
+
+  // Render
+  renderHub();
+  renderDiscover();
+  buildEmojiPicker();
+  buildColorPicker();
+}
+
+function buildStreakBar() {
+  const bar = document.getElementById('streakBar');
+  const completed = getCompleted();
+  const total = myGames.length;
+  const doneCount = myGames.filter(g => completed[g.id]).length;
+  bar.innerHTML = `<div class="streak-chip" style="border-color: var(--accent); color: var(--accent)">${doneCount}/${total} today</div>` +
+    myGames.map(g => {
+      const done = !!completed[g.id];
+      return `<div class="streak-chip" style="${done ? 'border-color:rgba(232,255,71,0.4);color:var(--accent)' : ''}">${done ? '✓' : ''} ${g.emoji} ${g.name.split(' ')[0]}</div>`;
+    }).join('');
+}
+
+// ── HUB ───────────────────────────────────────────────────────────────────────
+
+function renderHub() {
+  const grid = document.getElementById('gamesGrid');
+  if (myGames.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:span 2">
+      <div class="empty-icon">🎮</div>
+      <p>No games yet.<br>Go to Discover or Add to get started.</p>
+    </div>`;
+    return;
+  }
+
+  const completed = getCompleted();
+  grid.innerHTML = myGames.map((g, i) => {
+    const done = !!completed[g.id];
+    return `
+    <a class="game-card ${g.wide ? 'wide' : ''} ${done ? 'done' : ''}" href="${g.url}" target="_blank" style="--card-accent: ${g.color}">
+      <div>
+        <div class="game-card-emoji">${g.emoji}</div>
+      </div>
+      <div style="flex:1">
+        <div class="game-card-name">${g.name}</div>
+        <div class="game-card-source">${g.source}</div>
+        <div class="game-card-play">
+          ${done
+            ? `<span class="play-btn" style="color: var(--card-accent)">Done ✓</span>`
+            : `<span class="play-btn">Play <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>`
+          }
+          <div style="display:flex;gap:4px;align-items:center">
+            <button class="check-btn ${done ? 'checked' : ''}" onclick="toggleCompleted(event, '${g.id}')" title="${done ? 'Mark incomplete' : 'Mark as done'}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </button>
+            <button class="remove-btn"
+              onmousedown="startHold(event,'${g.id}')" ontouchstart="startHold(event,'${g.id}')"
+              onmouseup="cancelHold()" onmouseleave="cancelHold()"
+              ontouchend="cancelHold()" ontouchcancel="cancelHold()"
+              title="Hold to remove">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+              </svg>
+              <svg class="hold-ring" viewBox="0 0 36 36">
+                <circle cx="18" cy="18" r="16" fill="none" stroke="var(--accent2)" stroke-width="2.5"
+                  stroke-dasharray="100" stroke-dashoffset="100" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </a>
+  `}).join('');
+
+  buildStreakBar();
+}
+
+let lastRemoved = null;
+let toastTimer = null;
+let holdTimer = null;
+
+function startHold(e, id) {
+  e.preventDefault();
+  e.stopPropagation();
+  const btn = e.currentTarget;
+  btn.classList.add('holding');
+  holdTimer = setTimeout(() => {
+    btn.classList.remove('holding');
+    doRemove(id);
+  }, 700);
+}
+
+function cancelHold() {
+  if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+  document.querySelectorAll('.remove-btn.holding').forEach(b => b.classList.remove('holding'));
+}
+
+function doRemove(id) {
+  const idx = myGames.findIndex(g => g.id === id);
+  if (idx === -1) return;
+  lastRemoved = { game: myGames[idx], idx };
+  myGames = myGames.filter(g => g.id !== id);
+  saveGames();
+  renderHub();
+  renderDiscover();
+  // Show toast AFTER render so it's not wiped
+  showToast(`${lastRemoved.game.emoji} ${lastRemoved.game.name} removed`, true);
+}
+
+function undoRemove() {
+  if (!lastRemoved) return;
+  const restored = lastRemoved;
+  lastRemoved = null;
+  if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+  myGames.splice(restored.idx, 0, restored.game);
+  saveGames();
+  renderHub();
+  renderDiscover();
+  showToast('↩ Restored!');
+}
+
+// ── DISCOVER ──────────────────────────────────────────────────────────────────
+
+function renderDiscover() {
+  const list = document.getElementById('discoverList');
+  list.innerHTML = DISCOVER_GAMES.map(g => {
+    const inHub = myGames.some(m => m.id === g.id);
+    return `
+      <div class="discover-card">
+        ${g.isNew ? '<span class="new-badge">New</span>' : ''}
+        <div class="discover-emoji">${g.emoji}</div>
+        <div class="discover-info">
+          <div class="discover-name">${g.name}</div>
+          <div class="discover-desc">${g.desc}</div>
+          <div class="discover-actions">
+            <button class="btn-add" ${inHub ? 'disabled' : ''} onclick="addFromDiscover('${g.id}')">
+              ${inHub ? '✓ Added' : '+ Add to Hub'}
+            </button>
+            <a class="btn-visit" href="${g.url}" target="_blank">Visit ↗</a>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function addFromDiscover(id) {
+  const g = DISCOVER_GAMES.find(d => d.id === id);
+  if (!g || myGames.some(m => m.id === id)) return;
+  myGames.push({ id: g.id, name: g.name, emoji: g.emoji, source: g.source, url: g.url, color: g.color, wide: false });
+  saveGames();
+  renderHub();
+  renderDiscover();
+  showToast(`${g.name} added!`);
+}
+
+// ── ADD CUSTOM ────────────────────────────────────────────────────────────────
+
+function buildEmojiPicker() {
+  document.getElementById('emojiPicker').innerHTML = EMOJIS.map((e, i) =>
+    `<span class="emoji-opt ${i === 0 ? 'selected' : ''}" onclick="selectEmoji('${e}', this)">${e}</span>`
+  ).join('');
+}
+
+function buildColorPicker() {
+  document.getElementById('colorPicker').innerHTML = COLORS.map((c, i) =>
+    `<div class="color-opt ${i === 0 ? 'selected' : ''}" style="background:${c}" onclick="selectColor('${c}', this)"></div>`
+  ).join('');
+}
+
+function selectEmoji(e, el) {
+  selectedEmoji = e;
+  document.querySelectorAll('.emoji-opt').forEach(x => x.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function selectColor(c, el) {
+  selectedColor = c;
+  document.querySelectorAll('.color-opt').forEach(x => x.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function addCustomGame() {
+  const name = document.getElementById('inputName').value.trim();
+  const url = document.getElementById('inputUrl').value.trim();
+  const source = document.getElementById('inputSource').value.trim();
+
+  if (!name || !url) { showToast('Name and URL are required'); return; }
+
+  const id = 'custom_' + Date.now();
+  myGames.push({ id, name, emoji: selectedEmoji, source: source || 'Custom', url, color: selectedColor, wide: false });
+  saveGames();
+  renderHub();
+  renderDiscover();
+
+  // Clear
+  document.getElementById('inputName').value = '';
+  document.getElementById('inputUrl').value = '';
+  document.getElementById('inputSource').value = '';
+  showToast(`${name} added to Hub!`);
+  switchTab('hub', document.querySelector('.tab-btn'));
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+
+function saveGames() {
+  localStorage.setItem('dailyGamesHub_v2', JSON.stringify(myGames));
+}
+
+function showToast(msg, withUndo = false) {
+  const t = document.getElementById('toast');
+  if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+  const undoBtn = document.getElementById('toastUndo');
+  document.getElementById('toastMsg').textContent = msg;
+  undoBtn.style.display = withUndo ? '' : 'none';
+  t.classList.add('show');
+  const delay = withUndo ? 5000 : 2000;
+  toastTimer = setTimeout(() => { hideToast(); lastRemoved = null; }, delay);
+}
+
+function hideToast() {
+  document.getElementById('toast').classList.remove('show');
+}
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  btn.classList.add('active');
+}
+
+init();
+</script>
+</body>
+</html>
