@@ -9,6 +9,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Daily Games">
 <title>Daily Games Hub</title>
+<!-- App icon as inline SVG data URI -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%230a0a12'/%3E%3Ccircle cx='96' cy='96' r='60' fill='none' stroke='%23e8ff47' stroke-width='8'/%3E%3Ctext x='96' y='116' text-anchor='middle' font-size='72' font-family='serif'%3E🎮%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%230a0a12'/%3E%3Ccircle cx='96' cy='96' r='60' fill='none' stroke='%23e8ff47' stroke-width='8'/%3E%3Ctext x='96' y='116' text-anchor='middle' font-size='72' font-family='serif'%3E🎮%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -593,18 +596,12 @@
   .empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
   .empty-state p { font-size: 13px; line-height: 1.6; }
 
-  /* Drag & drop */
-  .game-card.dragging {
-    opacity: 0.35;
-    transform: scale(0.96);
-    border-color: var(--accent) !important;
-  }
-  .game-card.drag-over {
-    border-color: var(--accent3) !important;
-    transform: scale(1.02);
-  }
-  .game-card[draggable="true"] { cursor: grab; }
-  .game-card[draggable="true"]:active { cursor: grabbing; }
+  /* Reorder mode */
+  .games-grid.reorder-mode .game-card { cursor: grab; border-color: rgba(232,255,71,0.2); }
+  .game-card.dragging { opacity: 0.3; transform: scale(0.95); }
+  .game-card.drag-over { border-color: var(--accent) !important; transform: scale(1.03); box-shadow: 0 0 0 2px var(--accent); }
+  .reorder-btn { font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--muted);border-radius:20px;padding:5px 12px;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all 0.2s; }
+  .reorder-btn.active { border-color:var(--accent);color:var(--accent); }
 
   /* Edit pencil btn */
   .edit-btn {
@@ -709,13 +706,25 @@
 
 <!-- HUB TAB -->
 <div class="section active" id="tab-hub">
-  <p class="section-label">Today's Games <span style="float:right;font-size:9px;opacity:0.5">hold 🗑 to remove</span></p>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:0 4px">
+    <p class="section-label" style="margin-bottom:0">Today's Games</p>
+    <button class="reorder-btn" id="reorderBtn" onclick="toggleReorder()">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      Reorder
+    </button>
+  </div>
   <div class="games-grid" id="gamesGrid"></div>
 </div>
 
 <!-- DISCOVER TAB -->
 <div class="section" id="tab-discover">
-  <p class="section-label">Recommended for you</p>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:0 4px">
+    <p class="section-label" style="margin-bottom:0">Today's picks</p>
+    <button onclick="refreshDiscover()" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--muted);border-radius:20px;padding:5px 12px;cursor:pointer;display:flex;align-items:center;gap:5px" id="refreshBtn">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Refresh
+    </button>
+  </div>
   <div id="discoverList"></div>
 </div>
 
@@ -975,6 +984,376 @@ const DISCOVER_GAMES = [
     color: '#ff9f43',
     desc: 'Guess the mystery country — globe heats up as you get closer.',
     isNew: false
+  },
+  {
+    id: 'strands',
+    name: 'NYT Strands',
+    emoji: '🕸️',
+    source: 'NYT Games',
+    url: 'https://www.nytimes.com/games/strands',
+    color: '#6bc5ff',
+    desc: 'Find themed words hidden in a 6×8 letter grid. Find the spangram to reveal the theme.',
+    isNew: false
+  },
+  {
+    id: 'spelling-bee',
+    name: 'Spelling Bee',
+    emoji: '🐝',
+    source: 'NYT Games',
+    url: 'https://www.nytimes.com/puzzles/spelling-bee',
+    color: '#ffd700',
+    desc: 'Make words from 7 letters — every word must include the center letter. Reach Genius!',
+    isNew: false
+  },
+  {
+    id: 'letter-boxed',
+    name: 'Letter Boxed',
+    emoji: '📦',
+    source: 'NYT Games',
+    url: 'https://www.nytimes.com/puzzles/letter-boxed',
+    color: '#34d399',
+    desc: 'Connect letters around a box to make words. Use each side\'s letters — chain words together.',
+    isNew: false
+  },
+  {
+    id: 'waffle',
+    name: 'Waffle',
+    emoji: '🧇',
+    source: 'wafflegame.net',
+    url: 'https://wafflegame.net',
+    color: '#ff9f43',
+    desc: 'Swap letters to form 6 words in a waffle grid — in 15 moves or fewer.',
+    isNew: false
+  },
+  {
+    id: 'quordle',
+    name: 'Quordle',
+    emoji: '🟦',
+    source: 'merriam-webster.com',
+    url: 'https://www.merriam-webster.com/games/quordle',
+    color: '#60a5fa',
+    desc: 'Solve four Wordles simultaneously with just 9 guesses. Four times the chaos.',
+    isNew: false
+  },
+  {
+    id: 'contexto',
+    name: 'Contexto',
+    emoji: '🔍',
+    source: 'contexto.me',
+    url: 'https://contexto.me',
+    color: '#f472b6',
+    desc: 'Find the secret word — AI ranks your guesses by semantic similarity. Unlimited tries.',
+    isNew: false
+  },
+  {
+    id: 'nerdle',
+    name: 'Nerdle',
+    emoji: '🔢',
+    source: 'nerdlegame.com',
+    url: 'https://nerdlegame.com',
+    color: '#c084fc',
+    desc: 'Wordle for math lovers — guess a valid equation in 6 tries using numbers and operators.',
+    isNew: false
+  },
+  {
+    id: 'murdle',
+    name: 'Murdle',
+    emoji: '🔪',
+    source: 'murdle.com',
+    url: 'https://murdle.com',
+    color: '#ff6b6b',
+    desc: 'Solve a daily murder mystery using logic deduction. Who did it, where, and with what?',
+    isNew: false
+  },
+  {
+    id: 'squaredle',
+    name: 'Squaredle',
+    emoji: '🔡',
+    source: 'squaredle.app',
+    url: 'https://squaredle.app',
+    color: '#6aaa64',
+    desc: 'Swipe across adjacent letters in any direction to find hidden words in a daily grid.',
+    isNew: false
+  },
+  {
+    id: 'foodle',
+    name: 'Phoodle',
+    emoji: '🍽️',
+    source: 'phoodle.org',
+    url: 'https://www.phoodle.org',
+    color: '#ff9f43',
+    desc: 'Wordle with a food twist — guess the daily food-related 5-letter word in 6 tries.',
+    isNew: false
+  },
+  {
+    id: 'wordle-unlimited',
+    name: 'Wordle',
+    emoji: '🟩',
+    source: 'NYT Games',
+    url: 'https://www.nytimes.com/games/wordle/index.html',
+    color: '#6aaa64',
+    desc: 'Guess the 5-letter word in 6 tries. The original that started it all.',
+    isNew: false
+  },
+  {
+    id: 'immaculate-grid',
+    name: 'Immaculate Grid',
+    emoji: '⚽',
+    source: 'immaculategrid.com',
+    url: 'https://www.immaculategrid.com',
+    color: '#34d399',
+    desc: 'Fill a 3×3 sports grid with players who match both row and column criteria. 9 guesses.',
+    isNew: false
+  },
+  {
+    id: 'factle',
+    name: 'Factle',
+    emoji: '📊',
+    source: 'factle.app',
+    url: 'https://factle.app',
+    color: '#6bc5ff',
+    desc: 'Rank the top 5 answers to a trivia question in the correct order. Fact-based Wordle.',
+    isNew: false
+  },
+  {
+    id: 'moviedle',
+    name: 'Moviedle',
+    emoji: '🎥',
+    source: 'moviedle.app',
+    url: 'https://moviedle.app',
+    color: '#c084fc',
+    desc: 'Watch a 1-second clip of a movie and guess what it is — clip gets longer each round.',
+    isNew: false
+  },
+  {
+    id: 'heardle-decades',
+    name: 'Bandle',
+    emoji: '🎸',
+    source: 'bandle.app',
+    url: 'https://bandle.app',
+    color: '#1db954',
+    desc: 'Guess the song from a single instrument — more instruments added with each wrong guess.',
+    isNew: true
+  },
+  {
+    id: 'cloudle',
+    name: 'Cloudle',
+    emoji: '⛅',
+    source: 'cloudle.app',
+    url: 'https://cloudle.app',
+    color: '#60a5fa',
+    desc: 'Guess a city\'s 5-day weather forecast. Temperature + conditions — harder than it sounds.',
+    isNew: false
+  },
+  {
+    id: 'yeardle',
+    name: 'Year Guesser',
+    emoji: '📅',
+    source: 'listdle.com',
+    url: 'https://listdle.com/yearguesser',
+    color: '#ffd700',
+    desc: 'Given 4 clues from history, pop culture and politics — guess the year. Vaguest to most specific.',
+    isNew: true
+  },
+  {
+    id: 'nyt-crossword',
+    name: 'NYT Crossword',
+    emoji: '📰',
+    source: 'NYT Games',
+    url: 'https://www.nytimes.com/crosswords',
+    color: '#e8ff47',
+    desc: 'The classic daily crossword — from the Monday easy to the Saturday brutal.',
+    isNew: false
+  },
+  {
+    id: 'semantle',
+    name: 'Semantle',
+    emoji: '🧬',
+    source: 'semantle.com',
+    url: 'https://semantle.com',
+    color: '#f472b6',
+    desc: 'Find the secret word using semantic similarity — your guesses are ranked by meaning closeness. Can take 100+ tries.',
+    isNew: false
+  },
+  {
+    id: 'flagle',
+    name: 'Flagle',
+    emoji: '🚩',
+    source: 'flagle.uk',
+    url: 'https://flagle.uk',
+    color: '#ff6b6b',
+    desc: 'Guess the country from its flag — revealed one tile at a time over 6 guesses.',
+    isNew: false
+  },
+  {
+    id: 'gamedle',
+    name: 'Gamedle',
+    emoji: '🕹️',
+    source: 'gamedle.wtf',
+    url: 'https://www.gamedle.wtf',
+    color: '#c084fc',
+    desc: 'Guess the video game from its cover art, artwork, or gameplay screenshot. New game every day.',
+    isNew: false
+  },
+  {
+    id: 'chess-daily',
+    name: 'Chess Puzzle',
+    emoji: '♟️',
+    source: 'chess.com',
+    url: 'https://www.chess.com/daily-chess-puzzle',
+    color: '#34d399',
+    desc: 'Find the best move in a real game position. A new chess puzzle from Chess.com every day.',
+    isNew: false
+  },
+  {
+    id: 'box-office-game',
+    name: 'Box Office Game',
+    emoji: '🎟️',
+    source: 'boxofficega.me',
+    url: 'https://boxofficega.me',
+    color: '#ffd700',
+    desc: 'Guess the top 5 movies at the box office for a random weekend. Movie trivia meets data.',
+    isNew: false
+  },
+  {
+    id: 'timeguessr',
+    name: 'TimeGuessr',
+    emoji: '🕰️',
+    source: 'timeguessr.com',
+    url: 'https://timeguessr.com',
+    color: '#6bc5ff',
+    desc: 'Guess the year and location of historical photos. Like GeoGuessr but through time.',
+    isNew: false
+  },
+  {
+    id: 'pokedoku',
+    name: 'PokéDoku',
+    emoji: '🔴',
+    source: 'pokedoku.com',
+    url: 'https://pokedoku.com',
+    color: '#ff6b6b',
+    desc: 'Fill a 3x3 grid with Pokémon that match two overlapping criteria. One guess per cell.',
+    isNew: false
+  },
+  {
+    id: 'octordle',
+    name: 'Octordle',
+    emoji: '🐙',
+    source: 'octordle.com',
+    url: 'https://www.octordle.com',
+    color: '#60a5fa',
+    desc: 'Guess 8 Wordles at the same time with 13 guesses. The ultimate Wordle challenge.',
+    isNew: false
+  },
+  {
+    id: 'mathler',
+    name: 'Mathler',
+    emoji: '➗',
+    source: 'mathler.com',
+    url: 'https://www.mathler.com',
+    color: '#34d399',
+    desc: 'Find the hidden math equation that equals the given number. Nerdle\'s friendly cousin.',
+    isNew: false
+  },
+  {
+    id: 'geodle',
+    name: 'Geodle',
+    emoji: '🗺️',
+    source: 'geodle.me',
+    url: 'https://geodle.me',
+    color: '#6aaa64',
+    desc: 'Guess today\'s mystery country within 7 guesses using direction and distance hints.',
+    isNew: false
+  },
+  {
+    id: 'moviedle-classic',
+    name: 'Acted',
+    emoji: '🎭',
+    source: 'acted.io',
+    url: 'https://acted.io',
+    color: '#ff9f43',
+    desc: 'Guess a movie from images of its cast members. No titles, no posters — just faces.',
+    isNew: true
+  },
+  {
+    id: 'banjo',
+    name: 'Bandle',
+    emoji: '🎺',
+    source: 'bandle.app',
+    url: 'https://bandle.app',
+    color: '#1db954',
+    desc: 'Hear one instrument at a time from a song — guess it before the full band kicks in.',
+    isNew: false
+  },
+  {
+    id: 'geogrid',
+    name: 'GeoGrid',
+    emoji: '🌏',
+    source: 'geogridgame.com',
+    url: 'https://geogridgame.com',
+    color: '#6bc5ff',
+    desc: 'Fill a 3x3 grid with countries matching each row and column\'s geographic criteria.',
+    isNew: true
+  },
+  {
+    id: 'wordsync',
+    name: 'Connections Sports',
+    emoji: '🏀',
+    source: 'NYT Games',
+    url: 'https://www.nytimes.com/athletic/games/connections/sports',
+    color: '#ff9f43',
+    desc: 'The NYT Connections experience — but entirely sports themed. Group 16 sports terms into 4 categories.',
+    isNew: true
+  },
+  {
+    id: 'travle',
+    name: 'Travle',
+    emoji: '✈️',
+    source: 'travle.earth',
+    url: 'https://travle.earth',
+    color: '#34d399',
+    desc: 'Find a route between two countries by passing through neighboring countries. Geography meets pathfinding.',
+    isNew: false
+  },
+  {
+    id: 'absurdle',
+    name: 'Absurdle',
+    emoji: '😈',
+    source: 'qntm.org',
+    url: 'https://qntm.org/files/absurdle/absurdle.html',
+    color: '#ff6b6b',
+    desc: 'Adversarial Wordle — the word changes after every guess to avoid your deductions. Outsmart the game.',
+    isNew: false
+  },
+  {
+    id: 'spellcheck',
+    name: 'Spellcheck',
+    emoji: '🔠',
+    source: 'spellcheckgame.com',
+    url: 'https://spellcheckgame.com',
+    color: '#e8ff47',
+    desc: 'Hear a word read aloud and spell it correctly. Tests your vocabulary and ear — harder than it sounds.',
+    isNew: false
+  },
+  {
+    id: 'housle',
+    name: 'Housle',
+    emoji: '🏠',
+    source: 'housle.com',
+    url: 'https://housle.com',
+    color: '#ffd700',
+    desc: 'Guess the asking price of a house based on photos and location clues. Real estate Wordle.',
+    isNew: false
+  },
+  {
+    id: 'lostgamer',
+    name: 'Lostgamer',
+    emoji: '🗾',
+    source: 'lostgamer.io',
+    url: 'https://lostgamer.io',
+    color: '#c084fc',
+    desc: 'GeoGuessr but inside video games — guess your location in iconic game maps from a first-person view.',
+    isNew: true
   }
 ];
 
@@ -1057,16 +1436,7 @@ function renderHub() {
     <a class="game-card ${g.wide ? 'wide' : ''} ${done ? 'done' : ''}"
        href="${g.url}" target="_blank"
        style="--card-accent: ${g.color}"
-       draggable="true"
-       data-id="${g.id}"
-       ondragstart="onDragStart(event,'${g.id}')"
-       ondragover="onDragOver(event,'${g.id}')"
-       ondragleave="onDragLeave(event)"
-       ondrop="onDrop(event,'${g.id}')"
-       ondragend="onDragEnd(event)"
-       ontouchstart="touchDragStart(event,'${g.id}')"
-       ontouchmove="touchDragMove(event)"
-       ontouchend="touchDragEnd(event,'${g.id}')">
+       data-id="${g.id}">
       <div>
         <div class="game-card-emoji">${g.emoji}</div>
       </div>
@@ -1158,9 +1528,73 @@ function undoRemove() {
 
 // ── DISCOVER ──────────────────────────────────────────────────────────────────
 
+// ── DISCOVER LOGIC ────────────────────────────────────────────────────────────
+
+// Seeded deterministic shuffle — same seed = same order, no randomness leaking in
+function seededShuffle(arr, seed) {
+  const a = [...arr];
+  let s = (seed ^ 0xdeadbeef) >>> 0;
+  for (let i = a.length - 1; i > 0; i--) {
+    s = Math.imul(s ^ (s >>> 16), 0x45d9f3b);
+    s = Math.imul(s ^ (s >>> 16), 0x45d9f3b);
+    s = (s ^ (s >>> 16)) >>> 0;
+    const j = s % (i + 1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function getDailySeed() {
+  const d = new Date();
+  return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+}
+
+// Store: { date, offset } — offset advances on each refresh, resets each day
+function getDiscoverState() {
+  try {
+    const raw = JSON.parse(localStorage.getItem('discoverState') || '{}');
+    if (raw.date === todayKey()) return raw;
+  } catch(e) {}
+  const fresh = { date: todayKey(), offset: 0 };
+  localStorage.setItem('discoverState', JSON.stringify(fresh));
+  return fresh;
+}
+
+function refreshDiscover() {
+  const state = getDiscoverState();
+  // Pool of games not yet in hub
+  const pool = DISCOVER_GAMES.filter(g => !myGames.some(m => m.id === g.id));
+  // Advance offset by 5, wrapping around the full pool
+  state.offset = (state.offset + 5) % Math.max(pool.length, 1);
+  localStorage.setItem('discoverState', JSON.stringify(state));
+
+  const btn = document.getElementById('refreshBtn');
+  btn.style.transition = 'transform 0.5s cubic-bezier(.36,.07,.19,.97)';
+  btn.style.transform = 'rotate(360deg)';
+  setTimeout(() => { btn.style.transform = 'rotate(0deg)'; btn.style.transition = 'none'; }, 500);
+  renderDiscover();
+}
+
 function renderDiscover() {
   const list = document.getElementById('discoverList');
-  list.innerHTML = DISCOVER_GAMES.map(g => {
+  const state = getDiscoverState();
+
+  // All games not in hub, shuffled deterministically by today's date
+  const notAdded = DISCOVER_GAMES.filter(g => !myGames.some(m => m.id === g.id));
+  const shuffled = seededShuffle(notAdded, getDailySeed());
+
+  // Slice a window of 5 starting at offset — wrap around with no repeats
+  const count = Math.min(5, shuffled.length);
+  const picks = [];
+  for (let i = 0; i < count; i++) {
+    picks.push(shuffled[(state.offset + i) % shuffled.length]);
+  }
+
+  // Already-added games shown at bottom
+  const alreadyAdded = DISCOVER_GAMES.filter(g => myGames.some(m => m.id === g.id));
+  const toShow = [...picks, ...alreadyAdded];
+
+  list.innerHTML = toShow.map(g => {
     const inHub = myGames.some(m => m.id === g.id);
     return `
       <div class="discover-card">
@@ -1266,115 +1700,113 @@ function switchTab(tab, btn) {
   btn.classList.add('active');
 }
 
-// ── DRAG & DROP (mouse) ───────────────────────────────────────────────────────
+// ── REORDER (reliable drag for mouse + touch) ────────────────────────────────
 
+let reorderMode = false;
 let dragSrcId = null;
 
-function onDragStart(e, id) {
-  // only drag from the card itself, not from buttons
-  if (e.target.closest('button')) { e.preventDefault(); return; }
-  dragSrcId = id;
-  setTimeout(() => e.currentTarget.classList.add('dragging'), 0);
+function toggleReorder() {
+  reorderMode = !reorderMode;
+  const grid = document.getElementById('gamesGrid');
+  const btn  = document.getElementById('reorderBtn');
+  if (reorderMode) {
+    grid.classList.add('reorder-mode');
+    btn.classList.add('active');
+    btn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> Done`;
+    // Enable draggable on all cards
+    grid.querySelectorAll('.game-card').forEach(card => {
+      card.setAttribute('draggable', 'true');
+      card.addEventListener('dragstart',  handleDragStart);
+      card.addEventListener('dragover',   handleDragOver);
+      card.addEventListener('dragleave',  handleDragLeave);
+      card.addEventListener('drop',       handleDrop);
+      card.addEventListener('dragend',    handleDragEnd);
+      card.addEventListener('touchstart', handleTouchStart, {passive:false});
+      card.addEventListener('touchmove',  handleTouchMove,  {passive:false});
+      card.addEventListener('touchend',   handleTouchEnd);
+    });
+  } else {
+    grid.classList.remove('reorder-mode');
+    btn.classList.remove('active');
+    btn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg> Reorder`;
+  }
+}
+
+// Mouse drag
+function handleDragStart(e) {
+  dragSrcId = this.dataset.id;
+  setTimeout(() => this.classList.add('dragging'), 0);
   e.dataTransfer.effectAllowed = 'move';
 }
-
-function onDragOver(e, id) {
+function handleDragOver(e) {
   e.preventDefault();
-  if (id === dragSrcId) return;
-  e.currentTarget.classList.add('drag-over');
+  if (this.dataset.id === dragSrcId) return;
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  this.classList.add('drag-over');
+}
+function handleDragLeave(e) {
+  if (!this.contains(e.relatedTarget)) this.classList.remove('drag-over');
+}
+function handleDrop(e) {
+  e.preventDefault();
+  this.classList.remove('drag-over');
+  if (!dragSrcId || this.dataset.id === dragSrcId) return;
+  reorderGames(dragSrcId, this.dataset.id);
+}
+function handleDragEnd() {
+  this.classList.remove('dragging');
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  dragSrcId = null;
 }
 
-function onDragLeave(e) {
-  e.currentTarget.classList.remove('drag-over');
+// Touch drag
+let touchClone = null, touchSrcId = null, touchOffX = 0, touchOffY = 0;
+function handleTouchStart(e) {
+  if (e.target.closest('button')) return;
+  e.preventDefault();
+  touchSrcId = this.dataset.id;
+  const t = e.touches[0];
+  const rect = this.getBoundingClientRect();
+  touchOffX = t.clientX - rect.left;
+  touchOffY = t.clientY - rect.top;
+  touchClone = this.cloneNode(true);
+  touchClone.style.cssText = `position:fixed;top:${rect.top}px;left:${rect.left}px;width:${rect.width}px;height:${rect.height}px;pointer-events:none;z-index:9999;opacity:0.85;transform:scale(1.05) rotate(1deg);border:2px solid var(--accent);border-radius:16px;transition:none;`;
+  document.body.appendChild(touchClone);
+  this.classList.add('dragging');
+}
+function handleTouchMove(e) {
+  if (!touchSrcId) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  touchClone.style.left = (t.clientX - touchOffX) + 'px';
+  touchClone.style.top  = (t.clientY - touchOffY) + 'px';
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  const el = document.elementFromPoint(t.clientX, t.clientY);
+  const target = el?.closest('.game-card[data-id]');
+  if (target && target.dataset.id !== touchSrcId) target.classList.add('drag-over');
+}
+function handleTouchEnd(e) {
+  if (!touchSrcId) return;
+  const t = e.changedTouches[0];
+  if (touchClone) { touchClone.remove(); touchClone = null; }
+  document.querySelectorAll('.game-card.dragging').forEach(c => c.classList.remove('dragging'));
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  const el = document.elementFromPoint(t.clientX, t.clientY);
+  const target = el?.closest('.game-card[data-id]');
+  if (target && target.dataset.id !== touchSrcId) reorderGames(touchSrcId, target.dataset.id);
+  touchSrcId = null;
 }
 
-function onDrop(e, targetId) {
-  e.preventDefault();
-  e.currentTarget.classList.remove('drag-over');
-  if (!dragSrcId || dragSrcId === targetId) return;
-  const fromIdx = myGames.findIndex(g => g.id === dragSrcId);
-  const toIdx   = myGames.findIndex(g => g.id === targetId);
+function reorderGames(fromId, toId) {
+  const fromIdx = myGames.findIndex(g => g.id === fromId);
+  const toIdx   = myGames.findIndex(g => g.id === toId);
   if (fromIdx === -1 || toIdx === -1) return;
   const [moved] = myGames.splice(fromIdx, 1);
   myGames.splice(toIdx, 0, moved);
   saveGames();
   renderHub();
-}
-
-function onDragEnd(e) {
-  e.currentTarget.classList.remove('dragging');
-  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-  dragSrcId = null;
-}
-
-// ── TOUCH DRAG (mobile) ───────────────────────────────────────────────────────
-
-let touchDragId = null;
-let touchClone  = null;
-let touchOffX   = 0;
-let touchOffY   = 0;
-
-function touchDragStart(e, id) {
-  if (e.target.closest('button')) return;
-  // Only initiate after a slight delay to distinguish from tap
-  touchDragId = null;
-  const startX = e.touches[0].clientX;
-  const startY = e.touches[0].clientY;
-  const card = e.currentTarget;
-
-  card._touchDragTimer = setTimeout(() => {
-    touchDragId = id;
-    const rect = card.getBoundingClientRect();
-    touchOffX = startX - rect.left;
-    touchOffY = startY - rect.top;
-    // Clone for visual ghost
-    touchClone = card.cloneNode(true);
-    touchClone.style.cssText = `position:fixed;top:${rect.top}px;left:${rect.left}px;width:${rect.width}px;opacity:0.85;pointer-events:none;z-index:9999;transform:scale(1.04);transition:none;border:1px solid var(--accent);border-radius:16px;`;
-    document.body.appendChild(touchClone);
-    card.classList.add('dragging');
-    // Cancel hold-to-delete if dragging
-    cancelHold();
-  }, 300);
-}
-
-function touchDragMove(e) {
-  if (!touchDragId) return;
-  e.preventDefault();
-  const t = e.touches[0];
-  if (touchClone) {
-    touchClone.style.left = (t.clientX - touchOffX) + 'px';
-    touchClone.style.top  = (t.clientY - touchOffY) + 'px';
-  }
-  // Find element under finger
-  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-  const below = document.elementFromPoint(t.clientX, t.clientY);
-  const targetCard = below ? below.closest('.game-card[data-id]') : null;
-  if (targetCard && targetCard.dataset.id !== touchDragId) {
-    targetCard.classList.add('drag-over');
-  }
-}
-
-function touchDragEnd(e, id) {
-  clearTimeout(document.querySelector(`[data-id="${id}"]`)?._touchDragTimer);
-  if (!touchDragId) return;
-  // Find drop target
-  const t = e.changedTouches[0];
-  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-  if (touchClone) { touchClone.remove(); touchClone = null; }
-  document.querySelector(`[data-id="${touchDragId}"]`)?.classList.remove('dragging');
-  const below = document.elementFromPoint(t.clientX, t.clientY);
-  const targetCard = below ? below.closest('.game-card[data-id]') : null;
-  if (targetCard && targetCard.dataset.id !== touchDragId) {
-    const fromIdx = myGames.findIndex(g => g.id === touchDragId);
-    const toIdx   = myGames.findIndex(g => g.id === targetCard.dataset.id);
-    if (fromIdx !== -1 && toIdx !== -1) {
-      const [moved] = myGames.splice(fromIdx, 1);
-      myGames.splice(toIdx, 0, moved);
-      saveGames();
-      renderHub();
-    }
-  }
-  touchDragId = null;
+  // Re-enable reorder mode after re-render
+  if (reorderMode) { reorderMode = false; toggleReorder(); }
 }
 
 // ── EDIT MODAL ────────────────────────────────────────────────────────────────
